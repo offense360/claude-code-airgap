@@ -60,8 +60,8 @@ Phase 1 범위에서 제외되는 항목:
 이 저장소는 Eldrun 스타일의 private/public 분리 모델을 따른다.
 
 저장소 역할:
-- `claude-code-airgap`: offense360 private source repo
-- `claude-code-airgap-public`: offense360 public 배포 repo
+- `claude-code-airgap-dev`: offense360 private source repo
+- `claude-code-airgap`: offense360 public 배포 repo
 - `claude-code-airgap-kangwonland`: Kangwonland public 배포 repo
 
 public 저장소에는 `.publish-manifest`에 정의된 화이트리스트만 들어간다.

@@ -57,8 +57,8 @@ Documentation:
 ## Repository Distribution Policy
 
 This repository follows the Eldrun-style separation model:
-- `claude-code-airgap`: offense360 private source repo
-- `claude-code-airgap-public`: offense360 public distribution repo
+- `claude-code-airgap-dev`: offense360 private source repo
+- `claude-code-airgap`: offense360 public distribution repo
 - `claude-code-airgap-kangwonland`: Kangwonland public distribution repo
 
 Public repos receive only the whitelist defined in `.publish-manifest`.
