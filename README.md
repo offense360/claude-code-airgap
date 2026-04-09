@@ -1,5 +1,7 @@
 # Claude Code Airgap
 
+[한국어](docs/README_ko.md)
+
 Offline staging and deployment tooling for Claude Code.
 
 Phase 1 target platforms:
