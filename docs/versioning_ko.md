@@ -12,8 +12,7 @@
 
 ## 내부 추적 문서
 
-- `docs/superpowers/specs/`: 로컬 설계 문서
-- `docs/superpowers/plans/`: 로컬 구현 계획 문서
+- 내부 설계 및 계획 문서는 private 원본 저장소에만 둔다
 
 이 문서들은 내부 작업 기록이다. 공개 배포 대상이 아니다.
 
@@ -39,8 +38,7 @@
 - `docs/versioning_ko.md`
 
 내부 전용 문서:
-- `docs/superpowers/specs/`
-- `docs/superpowers/plans/`
+- private 원본 저장소에만 유지되는 내부 설계/계획 기록
 
 내부 설계 및 계획 문서를 공개 저장소로 복사하면 안 된다.
 
@@ -51,10 +49,8 @@
 1. private 원본 저장소에서 먼저 수정한다.
 2. 운영자에게 보이는 동작이 바뀐 경우에만 공개 문서를 갱신한다.
 3. 내부 설계/계획 문서는 private 저장소에만 둔다.
-4. `tools/sync-repos.sh`로 공개 화이트리스트를 동기화한다.
+4. private 저장소의 유지보수 워크플로로 공개 화이트리스트를 동기화한다.
 
 ## 로컬 미러 경로
 
-기본 로컬 미러 경로는 다음을 가정한다.
-- `../claude-code-airgap-public`
-- `../claude-code-airgap-kangwonland`
+공개 미러 저장소는 private 원본 저장소에서 유지한다.

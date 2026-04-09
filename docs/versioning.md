@@ -12,8 +12,7 @@ If a version is not tagged, do not present it as a formal release history item.
 
 ## Internal Tracking
 
-- `docs/superpowers/specs/` contains local design specifications.
-- `docs/superpowers/plans/` contains local implementation plans.
+- internal planning documents remain in the private source repository
 
 These documents are internal working records. They are not part of the public distribution set.
 
@@ -39,8 +38,7 @@ Public documents:
 - `docs/versioning_ko.md`
 
 Internal-only documents:
-- `docs/superpowers/specs/`
-- `docs/superpowers/plans/`
+- internal design and planning records maintained only in the private source repo
 
 Do not copy internal planning documents into public distribution repos.
 
@@ -51,12 +49,8 @@ When publishing to the public repos:
 1. Make changes in the private source repo.
 2. Update public-facing docs only if operator-visible behavior changed.
 3. Keep internal design and plan docs in the private repo.
-4. Sync the public whitelist using `tools/sync-repos.sh`.
+4. Sync the public whitelist using the private repo maintenance workflow.
 
 ## Local Mirror Layout
 
-The sync tooling assumes these sibling directories by default:
-- `../claude-code-airgap-public`
-- `../claude-code-airgap-kangwonland`
-
-These are working mirrors for the two public distributions.
+The private source repository maintains local mirrors for the two public distributions.

@@ -50,14 +50,7 @@ Generated bundle directory:
 Documentation:
 - `docs/versioning.md`
 - `docs/versioning_ko.md`
-- `docs/superpowers/specs/2026-04-10-claude-code-airgap-design.md`
-- `docs/superpowers/plans/2026-04-10-claude-code-airgap-implementation-plan.md`
 - `docs/runbooks/2026-04-10-offline-deployment-rehearsal.md`
-
-Repo sync tooling:
-- `.publish-manifest`
-- `tools/sync-repos.sh`
-- `tools/install-hooks.sh`
 
 ## Repository Distribution Policy
 
@@ -75,31 +68,13 @@ Included in public repos:
 
 Excluded from public repos:
 - `downloads/`
-- `docs/superpowers/specs/`
-- `docs/superpowers/plans/`
+- internal planning material
+- private-only repo maintenance tooling
 - other internal working material not listed in `.publish-manifest`
 
 The public distribution repos are intended to be content-identical.
 
-## Public Repo Sync
-
-Sync helper:
-
-```bash
-bash tools/sync-repos.sh offense360-public
-bash tools/sync-repos.sh kangwonland
-CLAUDE_CODE_AIRGAP_SKIP_PUSH=1 bash tools/sync-repos.sh both
-```
-
-Default local mirror directories:
-- `../claude-code-airgap-public`
-- `../claude-code-airgap-kangwonland`
-
-Default remote assumptions:
-- offense360 public: `offense360/claude-code-airgap-public`
-- Kangwonland public: `Kangwonland/claude-code-airgap`
-
-If those remotes differ, override them with environment variables before syncing.
+Public repo sync is managed from the private source repository.
 
 ## Support Matrix
 
