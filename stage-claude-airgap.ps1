@@ -23,13 +23,62 @@ function Initialize-NetworkDefaults {
     }
 }
 
+function Test-CurlAvailable {
+    return $null -ne (Get-Command -Name "curl.exe" -ErrorAction SilentlyContinue)
+}
+
+function Invoke-CurlTextRequest {
+    param([string]$Uri)
+
+    $output = & curl.exe -L --fail --silent --show-error $Uri 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $message = ($output | Out-String).Trim()
+        if ([string]::IsNullOrWhiteSpace($message)) {
+            $message = "curl.exe exited with code $LASTEXITCODE."
+        }
+        throw $message
+    }
+
+    return (($output | Out-String).Trim())
+}
+
+function Invoke-CurlDownloadRequest {
+    param(
+        [string]$Uri,
+        [string]$Path
+    )
+
+    $output = & curl.exe -L --fail --silent --show-error --output $Path $Uri 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        if (Test-Path -LiteralPath $Path) {
+            Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+        }
+
+        $message = ($output | Out-String).Trim()
+        if ([string]::IsNullOrWhiteSpace($message)) {
+            $message = "curl.exe exited with code $LASTEXITCODE."
+        }
+        throw $message
+    }
+}
+
 function Invoke-TextRequest {
     param([string]$Uri)
 
     try {
         return (Invoke-RestMethod -Uri $Uri -ErrorAction Stop).ToString().Trim()
     } catch {
-        throw "Network request failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine or retry with PowerShell 7 (`pwsh`). Underlying error: $($_.Exception.Message)"
+        $primaryError = $_.Exception.Message
+
+        if ($PSVersionTable.PSEdition -ne "Core" -and (Test-CurlAvailable)) {
+            try {
+                return Invoke-CurlTextRequest -Uri $Uri
+            } catch {
+                throw "Network request failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $($_.Exception.Message)"
+            }
+        }
+
+        throw "Network request failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine, install PowerShell 7 (`pwsh`), or ensure curl.exe is available for fallback. Underlying error: $primaryError"
     }
 }
 
@@ -42,7 +91,18 @@ function Invoke-DownloadRequest {
     try {
         Invoke-WebRequest -Uri $Uri -OutFile $Path -ErrorAction Stop | Out-Null
     } catch {
-        throw "Download failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine or retry with PowerShell 7 (`pwsh`). Underlying error: $($_.Exception.Message)"
+        $primaryError = $_.Exception.Message
+
+        if ($PSVersionTable.PSEdition -ne "Core" -and (Test-CurlAvailable)) {
+            try {
+                Invoke-CurlDownloadRequest -Uri $Uri -Path $Path
+                return
+            } catch {
+                throw "Download failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $($_.Exception.Message)"
+            }
+        }
+
+        throw "Download failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine, install PowerShell 7 (`pwsh`), or ensure curl.exe is available for fallback. Underlying error: $primaryError"
     }
 }
 
