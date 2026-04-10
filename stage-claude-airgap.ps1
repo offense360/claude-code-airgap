@@ -27,6 +27,10 @@ function Test-CurlAvailable {
     return $null -ne (Get-Command -Name "curl.exe" -ErrorAction SilentlyContinue)
 }
 
+function Test-CertutilAvailable {
+    return $null -ne (Get-Command -Name "certutil.exe" -ErrorAction SilentlyContinue)
+}
+
 function Invoke-CurlTextRequest {
     param([string]$Uri)
 
@@ -62,6 +66,40 @@ function Invoke-CurlDownloadRequest {
     }
 }
 
+function Invoke-CertutilDownloadRequest {
+    param(
+        [string]$Uri,
+        [string]$Path
+    )
+
+    $output = & certutil.exe -urlcache -split -f $Uri $Path 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        if (Test-Path -LiteralPath $Path) {
+            Remove-Item -LiteralPath $Path -Force -ErrorAction SilentlyContinue
+        }
+
+        $message = ($output | Out-String).Trim()
+        if ([string]::IsNullOrWhiteSpace($message)) {
+            $message = "certutil.exe exited with code $LASTEXITCODE."
+        }
+        throw $message
+    }
+}
+
+function Invoke-CertutilTextRequest {
+    param([string]$Uri)
+
+    $tempPath = Join-Path ([System.IO.Path]::GetTempPath()) ("claude-code-airgap-" + [guid]::NewGuid().ToString("N") + ".txt")
+    try {
+        Invoke-CertutilDownloadRequest -Uri $Uri -Path $tempPath
+        return (Get-Content -LiteralPath $tempPath -Raw).Trim()
+    } finally {
+        if (Test-Path -LiteralPath $tempPath) {
+            Remove-Item -LiteralPath $tempPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Invoke-TextRequest {
     param([string]$Uri)
 
@@ -74,11 +112,29 @@ function Invoke-TextRequest {
             try {
                 return Invoke-CurlTextRequest -Uri $Uri
             } catch {
-                throw "Network request failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $($_.Exception.Message)"
+                $curlError = $_.Exception.Message
+
+                if (Test-CertutilAvailable) {
+                    try {
+                        return Invoke-CertutilTextRequest -Uri $Uri
+                    } catch {
+                        throw "Network request failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $curlError Certutil fallback error: $($_.Exception.Message)"
+                    }
+                }
+
+                throw "Network request failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $curlError"
             }
         }
 
-        throw "Network request failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine, install PowerShell 7 (`pwsh`), or ensure curl.exe is available for fallback. Underlying error: $primaryError"
+        if ($PSVersionTable.PSEdition -ne "Core" -and (Test-CertutilAvailable)) {
+            try {
+                return Invoke-CertutilTextRequest -Uri $Uri
+            } catch {
+                throw "Network request failed for $Uri. PowerShell web request error: $primaryError Certutil fallback error: $($_.Exception.Message)"
+            }
+        }
+
+        throw "Network request failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine, install PowerShell 7 (`pwsh`), or ensure curl.exe or certutil.exe is available for fallback. Underlying error: $primaryError"
     }
 }
 
@@ -98,11 +154,31 @@ function Invoke-DownloadRequest {
                 Invoke-CurlDownloadRequest -Uri $Uri -Path $Path
                 return
             } catch {
-                throw "Download failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $($_.Exception.Message)"
+                $curlError = $_.Exception.Message
+
+                if (Test-CertutilAvailable) {
+                    try {
+                        Invoke-CertutilDownloadRequest -Uri $Uri -Path $Path
+                        return
+                    } catch {
+                        throw "Download failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $curlError Certutil fallback error: $($_.Exception.Message)"
+                    }
+                }
+
+                throw "Download failed for $Uri. PowerShell web request error: $primaryError Curl fallback error: $curlError"
             }
         }
 
-        throw "Download failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine, install PowerShell 7 (`pwsh`), or ensure curl.exe is available for fallback. Underlying error: $primaryError"
+        if ($PSVersionTable.PSEdition -ne "Core" -and (Test-CertutilAvailable)) {
+            try {
+                Invoke-CertutilDownloadRequest -Uri $Uri -Path $Path
+                return
+            } catch {
+                throw "Download failed for $Uri. PowerShell web request error: $primaryError Certutil fallback error: $($_.Exception.Message)"
+            }
+        }
+
+        throw "Download failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine, install PowerShell 7 (`pwsh`), or ensure curl.exe or certutil.exe is available for fallback. Underlying error: $primaryError"
     }
 }
 
