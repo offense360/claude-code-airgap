@@ -9,6 +9,43 @@ $ReleaseBaseUrl = "https://storage.googleapis.com/claude-code-dist-86c565f3-f756
 $SupportedPlatforms = @("win32-x64", "linux-x64")
 $BundleDirectory = Join-Path $PSScriptRoot "downloads"
 
+function Initialize-NetworkDefaults {
+    # Windows PowerShell 5.1 may negotiate legacy TLS defaults depending on machine policy.
+    # Force modern TLS before any HTTPS request to the official release bucket.
+    if ($PSVersionTable.PSEdition -ne "Core") {
+        $securityProtocol = [Net.SecurityProtocolType]::Tls12
+        if ([Enum]::GetNames([Net.SecurityProtocolType]) -contains "Tls13") {
+            $securityProtocol = $securityProtocol -bor [Net.SecurityProtocolType]::Tls13
+        }
+
+        [Net.ServicePointManager]::SecurityProtocol = $securityProtocol
+        [Net.ServicePointManager]::Expect100Continue = $false
+    }
+}
+
+function Invoke-TextRequest {
+    param([string]$Uri)
+
+    try {
+        return (Invoke-RestMethod -Uri $Uri -ErrorAction Stop).ToString().Trim()
+    } catch {
+        throw "Network request failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine or retry with PowerShell 7 (`pwsh`). Underlying error: $($_.Exception.Message)"
+    }
+}
+
+function Invoke-DownloadRequest {
+    param(
+        [string]$Uri,
+        [string]$Path
+    )
+
+    try {
+        Invoke-WebRequest -Uri $Uri -OutFile $Path -ErrorAction Stop | Out-Null
+    } catch {
+        throw "Download failed for $Uri. If you are using Windows PowerShell 5.1, verify TLS 1.2 is allowed on this machine or retry with PowerShell 7 (`pwsh`). Underlying error: $($_.Exception.Message)"
+    }
+}
+
 function Show-Banner {
     param([string]$Mode)
 
@@ -112,7 +149,7 @@ function Resolve-ClaudeVersion {
     }
 
     $channelUrl = "$ReleaseBaseUrl/$channel"
-    $resolved = (Invoke-RestMethod -Uri $channelUrl -ErrorAction Stop).ToString().Trim()
+    $resolved = Invoke-TextRequest -Uri $channelUrl
     if ([string]::IsNullOrWhiteSpace($resolved)) {
         throw "Unable to resolve release version from $channelUrl"
     }
@@ -186,7 +223,7 @@ function Save-UriToFile {
         Remove-Item -LiteralPath $tempPath -Force
     }
 
-    Invoke-WebRequest -Uri $Uri -OutFile $tempPath -ErrorAction Stop | Out-Null
+    Invoke-DownloadRequest -Uri $Uri -Path $tempPath
     Move-Item -LiteralPath $tempPath -Destination $Path -Force
 }
 
@@ -228,7 +265,7 @@ function Download-Artifact {
         Remove-Item -LiteralPath $tempPath -Force
     }
 
-    Invoke-WebRequest -Uri $Uri -OutFile $tempPath -ErrorAction Stop | Out-Null
+    Invoke-DownloadRequest -Uri $Uri -Path $tempPath
 
     $actualSize = (Get-Item -LiteralPath $tempPath).Length
     if ($actualSize -ne $Size) {
@@ -305,6 +342,8 @@ if ($showToolVersion) {
 if ($enableTui) {
     throw "TUI is deferred in phase 1."
 }
+
+Initialize-NetworkDefaults
 
 Show-Banner -Mode "Stage Offline Bundle"
 
